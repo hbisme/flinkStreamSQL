@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.source.kafka;
 
@@ -37,6 +36,7 @@ import java.util.Iterator;
  * json string parsing custom
  * Date: 2018/09/18
  * Company: www.dtstack.com
+ *
  * @author sishu.yss
  */
 
@@ -46,19 +46,31 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /** Type information describing the result type. */
+    /**
+     * Type information describing the result type.
+     * 描述结果类型的类型信息.
+     */
     private final TypeInformation<Row> typeInfo;
 
-    /** Field names to parse. Indices match fieldTypes indices. */
+    /**
+     * Field names to parse. Indices match fieldTypes indices.
+     * 要解析的字段名数组,和字段类型数组相匹配.
+     */
     private final String[] fieldNames;
 
-    /** Types to parse fields as. Indices match fieldNames indices. */
+    /**
+     * Types to parse fields as. Indices match fieldNames indices.
+     * 要解析的字段类型数组,和字段名数组相匹配.
+     */
     private final TypeInformation<?>[] fieldTypes;
 
-    /** Flag indicating whether to fail on a missing field. */
+    /**
+     * Flag indicating whether to fail on a missing field.
+     * 是否某些字段会miss的标志
+     */
     private boolean failOnMissingField;
 
-    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo){
+    public CustomerJsonDeserialization(TypeInformation<Row> typeInfo) {
         this.typeInfo = typeInfo;
 
         this.fieldNames = ((RowTypeInfo) typeInfo).getFieldNames();
@@ -66,6 +78,9 @@ public class CustomerJsonDeserialization extends AbstractDeserializationSchema<R
         this.fieldTypes = ((RowTypeInfo) typeInfo).getFieldTypes();
     }
 
+    /**
+     * 反序列化字节数组到行(Row)
+     */
     @Override
     public Row deserialize(byte[] message) throws IOException {
         try {

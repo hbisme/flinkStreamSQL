@@ -25,6 +25,8 @@ package com.dtstack.flink.sql.parser;
  * Date: 2018/6/26
  * Company: www.dtstack.com
  * @author xuchao
+ *
+ * 解析器根接口
  */
 
 public interface IParser {

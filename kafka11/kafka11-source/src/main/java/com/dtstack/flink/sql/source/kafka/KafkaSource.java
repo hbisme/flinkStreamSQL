@@ -36,6 +36,7 @@ import java.util.Properties;
 
 /**
  * If eventtime field is specified, the default time field rowtime
+ * 如果指定eventtime字段，则默认时间字段rowtime
  * Date: 2018/09/18
  * Company: www.dtstack.com
  * @author sishu.yss
@@ -46,6 +47,10 @@ public class KafkaSource implements IStreamSourceGener<Table> {
     /**
      * Get kafka data source, you need to provide the data field names, data types
      * If you do not specify auto.offset.reset, the default use groupoffset
+     *
+     * 生成kafka 数据源, 你需要提供字段名称, 字段类型,
+     * 如果设置auto.offset.reset, 默认 就是 groupOffset
+     *
      * @param sourceTableInfo
      * @return
      */
@@ -61,6 +66,7 @@ public class KafkaSource implements IStreamSourceGener<Table> {
         props.setProperty("auto.offset.reset", kafka011SourceTableInfo.getOffsetReset());
         //TODO props.setProperty("zookeeper.connect", kafka09SourceTableInfo.)
 
+        // 字段类型数组
         TypeInformation[] types = new TypeInformation[kafka011SourceTableInfo.getFields().length];
         for(int i = 0; i< kafka011SourceTableInfo.getFieldClasses().length; i++){
             types[i] = TypeInformation.of(kafka011SourceTableInfo.getFieldClasses()[i]);

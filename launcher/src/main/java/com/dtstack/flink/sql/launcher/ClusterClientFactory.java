@@ -55,8 +55,10 @@ public class ClusterClientFactory {
 
     public static ClusterClient createClusterClient(LauncherOptions launcherOptions) {
         String mode = launcherOptions.getMode();
+        // standalone模式
         if(mode.equals(ClusterMode.standalone.name())) {
             return createStandaloneClient(launcherOptions);
+        // yarn模式
         } else if(mode.equals(ClusterMode.yarn.name())) {
             return createYarnClient(launcherOptions);
         }
@@ -73,8 +75,11 @@ public class ClusterClientFactory {
     }
 
     public static YarnClusterClient createYarnClient(LauncherOptions launcherOptions) {
+        // flink配置目录
         String flinkConfDir = launcherOptions.getFlinkconf();
+        // 获取轻量级的key-value配置对象
         Configuration config = GlobalConfiguration.loadConfiguration(flinkConfDir);
+        // yarn配置目录
         String yarnConfDir =launcherOptions.getYarnconf();
         org.apache.hadoop.conf.Configuration yarnConf = new YarnConfiguration();
         if(StringUtils.isNotBlank(yarnConfDir)) {
@@ -84,6 +89,7 @@ public class ClusterClientFactory {
                 FileSystem.initialize(config);
 
                 File dir = new File(yarnConfDir);
+                // 如果yarn配置目录存在
                 if(dir.exists() && dir.isDirectory()) {
                     File[] xmlFileList = new File(yarnConfDir).listFiles(new FilenameFilter() {
                         @Override
@@ -94,6 +100,7 @@ public class ClusterClientFactory {
                             return false;
                         }
                     });
+                    // 如果yarn配置文件存在,将配置文件路径加入到yarnConf中
                     if(xmlFileList != null) {
                         for(File xmlFile : xmlFileList) {
                             yarnConf.addResource(xmlFile.toURI().toURL());

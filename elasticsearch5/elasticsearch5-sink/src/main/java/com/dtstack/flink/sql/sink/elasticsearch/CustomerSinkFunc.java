@@ -52,8 +52,10 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private List<Integer> idFieldIndexList;
 
+    // 名称列表
     private List<String> fieldNames;
 
+    // 类型列表
     private List<String> fieldTypes;
 
     /** 默认分隔符为'_' */
@@ -67,16 +69,19 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
         this.idFieldIndexList = idFieldIndexes;
     }
 
+    /* 实现es父类接口的方法 */
     @Override
     public void process(Tuple2 tuple2, RuntimeContext ctx, RequestIndexer indexer) {
         try{
             Tuple2<Boolean, Row> tupleTrans = tuple2;
+            // 是否 回撤标记
             Boolean retract = tupleTrans.getField(0);
+            // 真实的element数据
             Row element = tupleTrans.getField(1);
+            // 如果是回撤的 记录 就不发送
             if(!retract){
                 return;
             }
-
 
             indexer.add(createIndexRequest(element));
         }catch (Throwable e){
@@ -86,6 +91,9 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
 
     private IndexRequest createIndexRequest(Row element) {
 
+        /*
+        * 将 主键列表数字转成名称: List(1,2,3) ->  List("id", "name", "type")
+        * */
         List<String> idFieldList = new ArrayList<>();
         for(int index : idFieldIndexList){
             if(index >= element.getArity()){
@@ -95,17 +103,19 @@ public class CustomerSinkFunc implements ElasticsearchSinkFunction<Tuple2> {
             idFieldList.add(element.getField(index).toString());
         }
 
+        // 将Row row 的输入 转成 Map(String, Object)
         Map<String, Object> dataMap = EsUtil.rowToJsonMap(element,fieldNames,fieldTypes);
         int length = Math.min(element.getArity(), fieldNames.size());
         for(int i=0; i<length; i++){
             dataMap.put(fieldNames.get(i), element.getField(i));
         }
-
+        // id 为 主键list用 '_' 拼接起来
         String id = StringUtils.join(idFieldList, sp);
-        return Requests.indexRequest()
+        IndexRequest res = Requests.indexRequest()
                 .index(index)
                 .type(type)
                 .id(id)
                 .source(dataMap);
+        return res;
     }
 }

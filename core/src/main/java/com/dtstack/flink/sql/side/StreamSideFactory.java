@@ -37,6 +37,7 @@ public class StreamSideFactory {
 
     private static final String CURR_TYPE = "side";
 
+    // 入参比如说 ("mysql", localPluginRoot, "LRU")
     public static AbsTableParser getSqlParser(String pluginType, String sqlRootDir, String cacheType) throws Exception {
 
         String sideOperator = ECacheType.ALL.name().equals(cacheType) ? "all" : "async";
@@ -44,7 +45,9 @@ public class StreamSideFactory {
         String pluginJarPath = PluginUtil.getSideJarFileDirPath(pluginType, sideOperator, "side", sqlRootDir);
 
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
+        // 用classLoader,加载插件目录下的各jar包
         PluginUtil.addPluginJar(pluginJarPath, dtClassLoader);
+        // 得到维表的className,比如说: com.dtstack.flink.sql.side.mysql.table.MysqlSideParser
         String className = PluginUtil.getSqlParserClassName(pluginType, CURR_TYPE);
 
         Class<?> sideParser = dtClassLoader.loadClass(className);
@@ -52,6 +55,7 @@ public class StreamSideFactory {
             throw new RuntimeException("class " + sideParser.getName() + " not subClass of AbsSideTableParser");
         }
 
+        // 返回解析器的基类
         return sideParser.asSubclass(AbsTableParser.class).newInstance();
     }
 }

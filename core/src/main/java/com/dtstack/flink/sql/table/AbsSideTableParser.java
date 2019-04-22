@@ -35,7 +35,8 @@ import java.util.Map;
 
 public abstract class AbsSideTableParser extends AbsTableParser {
 
-    //Analytical create table attributes ==> Get information cache
+    // Analytical create table attributes ==> Get information cache
+    // 分析props(创建表的属性)=> 设置SideTableInfo中关于cache方面设置
     protected void parseCacheProp(SideTableInfo sideTableInfo, Map<String, Object> props){
         if(props.containsKey(SideTableInfo.CACHE_KEY.toLowerCase())){
             String cacheType = MathUtil.getString(props.get(SideTableInfo.CACHE_KEY.toLowerCase()));

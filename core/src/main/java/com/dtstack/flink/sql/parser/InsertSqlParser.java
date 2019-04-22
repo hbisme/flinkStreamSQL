@@ -37,7 +37,14 @@ import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
 
 /**
  * 解析flink sql
- * sql 只支持 insert 开头的
+ * sql 语句如:
+ *         INSERT INTO `MYRESULT`
+ *             (SELECT `D`.`CHANNEL`, `D`.`INFO`
+ *             FROM
+ *             (SELECT `A`.*, `B`.`INFO`
+ *                 FROM `MYTABLE` AS `A`
+ *             INNER JOIN `SIDETABLE` AS `B` ON `A`.`CHANNEL` = `B`.`NAME`
+ *             WHERE `A`.`CHANNEL` = 'xc2' AND `A`.`PV` = 10) AS `D`)
  * Date: 2018/6/22
  * Company: www.dtstack.com
  * @author xuchao
@@ -57,9 +64,13 @@ public class InsertSqlParser implements IParser {
 
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
+        /*
+        * 生成sql解析器
+        * */
         SqlParser sqlParser = SqlParser.create(sql);
         SqlNode sqlNode = null;
         try {
+            // sqlNode是Tree形式的SQL Tree
             sqlNode = sqlParser.parseStmt();
         } catch (SqlParseException e) {
             throw new RuntimeException("", e);
@@ -68,6 +79,10 @@ public class InsertSqlParser implements IParser {
         SqlParseResult sqlParseResult = new SqlParseResult();
         parseNode(sqlNode, sqlParseResult);
         sqlParseResult.setExecSql(sqlNode.toString());
+
+        /*
+        * sqlTree中,加入可执行sql语句的解析结果
+        * */
         sqlTree.addExecSql(sqlParseResult);
     }
 
@@ -119,6 +134,19 @@ public class InsertSqlParser implements IParser {
         }
     }
 
+    /*
+    * sql解析结果,包含
+    * 1.sourceTableList: 源表名称的列表, 如: List("MYTABLE", "SIDETABLE")
+    * 2.targetTableList: 目标表名称的列表, 如: LIST("MYRESULT")
+    * 3.execSql 执行的sql语句,如:
+    *   INSERT INTO `MYRESULT`
+            (SELECT `D`.`CHANNEL`, `D`.`INFO`
+            FROM
+            (SELECT `A`.*, `B`.`INFO`
+                FROM `MYTABLE` AS `A`
+            INNER JOIN `SIDETABLE` AS `B` ON `A`.`CHANNEL` = `B`.`NAME`
+            WHERE `A`.`CHANNEL` = 'xc2' AND `A`.`PV` = 10) AS `D`)
+    * */
     public static class SqlParseResult {
 
         private List<String> sourceTableList = Lists.newArrayList();
@@ -151,4 +179,34 @@ public class InsertSqlParser implements IParser {
             this.execSql = execSql;
         }
     }
+
+
+    /*
+    * 测试 parseSql (解析sql),也可用于debug
+    *
+    * */
+    public static void main(String[] args) {
+        String sql =
+                " insert into MyResult\n" +
+                "    select\n" +
+                "        d.channel,\n" +
+                "        d.info\n" +
+                "    from(\n" +
+                "    select\n" +
+                "            a.*,b.info\n" +
+                "        from MyTable a\n" +
+                "        join sideTable b\n" +
+                "        on a.channel = b.name\n" +
+                "        where\n" +
+                "            a.channel = 'xc2'\n" +
+                "            and a.pv=10      \n" +
+                "    ) as d";
+        SqlTree sqlTree = new SqlTree();
+        InsertSqlParser insertSqlParser = InsertSqlParser.newInstance();
+        /* 将数据写到sqlTree  */
+        insertSqlParser.parseSql(sql, sqlTree);
+        System.out.println(sqlTree);
+
+    }
+
 }

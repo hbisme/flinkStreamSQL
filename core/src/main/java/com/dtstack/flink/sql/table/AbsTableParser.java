@@ -31,16 +31,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Reason:
+ * Reason: 解析器的基类
  * Date: 2018/7/4
- * Company: www.dtstack.com
- * @author xuchao
  */
 
 public abstract class AbsTableParser {
 
     private static final String PRIMARY_KEY = "primaryKey";
 
+    // 匹配主键字符串的正则
     private static Pattern primaryKeyPattern = Pattern.compile("(?i)PRIMARY\\s+KEY\\s*\\((.*)\\)");
 
     public static Map<String, Pattern> keyPatternMap = Maps.newHashMap();
@@ -56,6 +55,7 @@ public abstract class AbsTableParser {
         return true;
     }
 
+    /** 得到通用的tableInfo */
     public abstract TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props);
 
     public boolean dealKeyPattern(String fieldRow, TableInfo tableInfo){
@@ -77,10 +77,24 @@ public abstract class AbsTableParser {
         return false;
     }
 
+    // 解析字段信息
     public void parseFieldsInfo(String fieldsInfo, TableInfo tableInfo){
+
+        /* 按逗号分隔来拆分字符串为 字段数组
+        *  猜测是 将
+        *   """
+        *       name varchar,
+        *       channel varchar,
+        *       pv int,
+        *       time bigint,
+        *   """
+        *  按逗号分成   ["name varchar" , "channel varchar" , "pv int", "time bigint"] 数组
+        *
+        * */
 
         String[] fieldRows = DtStringUtil.splitIgnoreQuotaBrackets(fieldsInfo, ",");
         for(String fieldRow : fieldRows){
+
             fieldRow = fieldRow.trim();
             if(fieldNameNeedsUpperCase()) {
                 fieldRow = fieldRow.toUpperCase();
@@ -92,6 +106,10 @@ public abstract class AbsTableParser {
                 continue;
             }
 
+            /*
+            * 猜测是将 "name varchar" 拆分为 ["name", "varchar"] 数组
+            *
+            * */
             String[] filedInfoArr = fieldRow.split("\\s+");
             if(filedInfoArr.length < 2){
                 throw new RuntimeException(String.format("table [%s] field [%s] format error.", tableInfo.getName(), fieldRow));
@@ -101,21 +119,32 @@ public abstract class AbsTableParser {
             String[] filedNameArr = new String[filedInfoArr.length - 1];
             System.arraycopy(filedInfoArr, 0, filedNameArr, 0, filedInfoArr.length - 1);
             String fieldName = String.join(" ", filedNameArr);
+
+            // 得到字段类型 "name varchar" ->  "varchar"
             String fieldType = filedInfoArr[filedInfoArr.length - 1 ].trim();
+            // 字符串-> class类, 比如 "varchar" -> String.class
             Class fieldClass = ClassUtil.stringConvertClass(fieldType);
 
-            tableInfo.addField(fieldName);
-            tableInfo.addFieldClass(fieldClass);
-            tableInfo.addFieldType(fieldType);
+            // 将信息注册到tableInfo中
+            tableInfo.addField(fieldName);   // 比如: "name"
+            tableInfo.addFieldClass(fieldClass);  //  比如: "Class<?> String.class"
+            tableInfo.addFieldType(fieldType);  //  比如: "varchar"
         }
 
         tableInfo.finish();
     }
 
+    // 处理主键
     public static void dealPrimaryKey(Matcher matcher, TableInfo tableInfo){
+
+        /*
+        * 猜测, group(1) 返回:   " primary key (name,id)" 中的 "name,id"
+        * */
         String primaryFields = matcher.group(1);
+        // 得到主键数组
         String[] splitArry = primaryFields.split(",");
         List<String> primaryKes = Lists.newArrayList(splitArry);
+        // 将主键数组注册到tableInfo中
         tableInfo.setPrimaryKeys(primaryKes);
     }
 }

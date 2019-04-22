@@ -54,6 +54,7 @@ public class MysqlAsyncSideInfo extends SideInfo {
 
         String sideTableName = joinInfo.getSideTableName();
 
+        // join 的条件
         SqlNode conditionNode = joinInfo.getCondition();
 
         List<SqlNode> sqlNodeList = Lists.newArrayList();

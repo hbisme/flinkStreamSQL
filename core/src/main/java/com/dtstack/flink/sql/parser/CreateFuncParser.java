@@ -32,6 +32,12 @@ import java.util.regex.Pattern;
 
 public class CreateFuncParser implements IParser {
 
+    /*
+    * 解析这样的sql: " create scala  function myFunc  with com.hb.myClass "
+    *   type: scala
+    *   funcName: myFunc
+    *   className: com.hb.myClass
+    * */
     private static final String funcPatternStr = "(?i)\\s*create\\s+(scala|table)\\s+function\\s+(\\S+)\\s+WITH\\s+(\\S+)";
 
     private static final Pattern funcPattern = Pattern.compile(funcPatternStr);
@@ -52,6 +58,10 @@ public class CreateFuncParser implements IParser {
             result.setType(type);
             result.setName(funcName);
             result.setClassName(className);
+            /*
+            *  将sql解析后的结果,添加到sqlTree的 List<CreateFuncParser.SqlParserResult> functionList 中
+            *
+            * */
             sqlTree.addFunc(result);
         }
     }
@@ -61,6 +71,13 @@ public class CreateFuncParser implements IParser {
         return new CreateFuncParser();
     }
 
+    /*
+    * sql解析结果的内部类,字段有:
+    * 1. name: (比如: myFunc)
+    * 2. className: (比如: com.hb.myClass)
+    * 3. type(比如: scala)
+    *
+    * */
     public static class SqlParserResult{
 
         private String name;
@@ -92,6 +109,20 @@ public class CreateFuncParser implements IParser {
         public void setType(String type) {
             this.type = type;
         }
+    }
+
+    /*
+    * 测试 parseSql (解析func),也可用于debug
+    *
+    *
+    * */
+    public static void main(String[] args) {
+        String sql = " create scala  function myFunc  with com.hb.myClass ";
+        SqlTree sqlTree = new SqlTree();
+        CreateFuncParser createFuncParser = CreateFuncParser.newInstance();
+        /* 将数据写到sqlTree  */
+        createFuncParser.parseSql(sql, sqlTree);
+
     }
 
 

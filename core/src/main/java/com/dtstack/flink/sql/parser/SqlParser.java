@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- 
+
 
 package com.dtstack.flink.sql.parser;
 
@@ -55,6 +55,8 @@ public class SqlParser {
      * CREATE TABLE sls_stream() with ();
      * CREATE (TABLE|SCALA) FUNCTION fcnName WITH com.dtstack.com;
      * insert into tb1 select * from tb2;
+     * 解析sql语句
+     *
      * @param sql
      */
     public static SqlTree parseSql(String sql) throws Exception {
@@ -67,24 +69,39 @@ public class SqlParser {
             throw new RuntimeException("need to set local sql plugin root");
         }
 
+        /*
+        * 1.将注释删除掉
+        * 2.将回车换行和tab替换成空格
+        * */
         sql = sql.replaceAll("--.*", "")
                 .replaceAll("\r\n", " ")
                 .replaceAll("\n", " ")
                 .replace("\t", " ").trim();
 
+        /*
+        * 将多条sql语句字符串,按';' 拆分成 sql字符串列表.
+        * */
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
+
         SqlTree sqlTree = new SqlTree();
 
+        // childSql 是单条sql语句
         for(String childSql : sqlArr){
             if(Strings.isNullOrEmpty(childSql)){
                 continue;
             }
             boolean result = false;
             for(IParser sqlParser : sqlParserList){
+                /* 每个解析器都判断是否满足解析类型 ,不满足则进入下一次循环 */
                 if(!sqlParser.verify(childSql)){
                     continue;
                 }
 
+                /* 解析单条sql语句
+                 * parseSql 的作用是 将sqlTree 的 preDealTableMap 变量增加一项:
+                 * key: myTable (比如: tableName), value: sql解析结果类
+                 *
+                 * */
                 sqlParser.parseSql(childSql, sqlTree);
                 result = true;
             }
@@ -94,7 +111,7 @@ public class SqlParser {
             }
         }
 
-        //解析exec-sql
+        /* 解析exec-sql */
         if(sqlTree.getExecSqlList().size() == 0){
             throw new RuntimeException("sql no executable statement");
         }
@@ -109,8 +126,10 @@ public class SqlParser {
                     throw new RuntimeException("can't find table " + tableName);
                 }
 
+                // 解析源表和维表,生成 TableInfo
                 TableInfo tableInfo = TableInfoParserFactory.parseWithTableType(ETableType.SOURCE.getType(),
                         createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                // 将生成的 TableInfo 加入到 sqlTree
                 sqlTree.addTableInfo(tableName, tableInfo);
             }
 

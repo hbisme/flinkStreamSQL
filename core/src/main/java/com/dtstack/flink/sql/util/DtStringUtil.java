@@ -81,6 +81,11 @@ public class DtStringUtil {
 
     /***
      * Split the specified string delimiter --- ignored in brackets and quotation marks delimiter
+     *
+     * 输入str拆分成字符串数组,但是不拆分各种括号内的,比如:
+     *  str = "abc,def(h,i)"
+     *  会拆分成 abc  和  def(h,i)
+     *
      * @param str
      * @param delimter
      * @return
@@ -96,6 +101,12 @@ public class DtStringUtil {
     }
 
 
+    /*
+    * 单列(col)转字符串,比如
+    *   ("3", "INT") -> "3"
+    *
+    *
+    * */
     public static String col2string(Object column, String type) {
         String rowData = column.toString();
         ColumnType columnType = ColumnType.valueOf(type.toUpperCase());

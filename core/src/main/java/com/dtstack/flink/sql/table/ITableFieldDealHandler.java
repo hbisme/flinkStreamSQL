@@ -27,8 +27,12 @@ import java.util.regex.Matcher;
  * Date: 2018/7/4
  * Company: www.dtstack.com
  * @author xuchao
+ *
+ *
+ * 表字段处理程序接口
  */
 public interface ITableFieldDealHandler {
 
+    // 处理主键
     void dealPrimaryKey(Matcher matcher, TableInfo tableInfo);
 }

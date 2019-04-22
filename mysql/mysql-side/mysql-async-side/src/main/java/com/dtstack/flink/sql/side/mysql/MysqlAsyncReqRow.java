@@ -140,6 +140,7 @@ public class MysqlAsyncReqRow extends AsyncReqRow {
 
             final SQLConnection connection = conn.result();
             String sqlCondition = sideInfo.getSqlCondition();
+            // rs 是 ResultSet
             connection.queryWithParams(sqlCondition, inputParams, rs -> {
                 if (rs.failed()) {
                     LOG.error("Cannot retrieve the data from the database");

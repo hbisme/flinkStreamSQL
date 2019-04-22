@@ -26,8 +26,7 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
 
 /**
  * @date 2018/09/12
- * @author sishu.yss
- * @Company: www.dtstack.com
+ * es结果表的描述信息
  */
 public class ElasticsearchTableInfo extends TargetTableInfo {
 
@@ -93,6 +92,7 @@ public class ElasticsearchTableInfo extends TargetTableInfo {
         setType(CURR_TYPE);
     }
 
+    // 覆写 父类的check, 校验需要非空的字段
     @Override
     public boolean check() {
         Preconditions.checkNotNull(address, "elasticsearch type of address is required");

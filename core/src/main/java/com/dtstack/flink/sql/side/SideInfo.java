@@ -17,10 +17,10 @@
  */
 
 
-
 package com.dtstack.flink.sql.side;
 
 import com.dtstack.flink.sql.side.cache.AbsSideCache;
+
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -38,10 +38,11 @@ import java.util.Map;
  * Reason:
  * Date: 2018/9/18
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
-public abstract class SideInfo implements Serializable{
+public abstract class SideInfo implements Serializable {
 
     protected RowTypeInfo rowTypeInfo;
 
@@ -53,17 +54,21 @@ public abstract class SideInfo implements Serializable{
 
     protected String sqlCondition = "";
 
+    // 维表中的字段拼接后,比如 "sideF1,sideF2"
     protected String sideSelectFields = "";
 
     protected JoinType joinType;
 
-    //key:Returns the value of the position, value: the ref field index​in the input table
+    // key: Returns the value of the position, value: the ref field index​in the input table
+    // key: 位置的值, value: 输入表中的位置
     protected Map<Integer, Integer> inFieldIndex = Maps.newHashMap();
 
-    //key:Returns the value of the position, value:  the ref field index​in the side table
+    // key: 位置的值, value: 维表中的位置
+    // key:Returns the value of the position, value:  the ref field index​in the side table
     protected Map<Integer, Integer> sideFieldIndex = Maps.newHashMap();
 
-    //key:Returns the value of the position, value:  the ref field name​in the side table
+    // key: 位置的值, value: 维表中字段的名称
+    // key:Returns the value of the position, value:  the ref field name​in the side table
     protected Map<Integer, String> sideFieldNameIndex = Maps.newHashMap();
 
     protected SideTableInfo sideTableInfo;
@@ -71,7 +76,7 @@ public abstract class SideInfo implements Serializable{
     protected AbsSideCache sideCache;
 
     public SideInfo(RowTypeInfo rowTypeInfo, JoinInfo joinInfo, List<FieldInfo> outFieldInfoList,
-                    SideTableInfo sideTableInfo){
+                    SideTableInfo sideTableInfo) {
         this.rowTypeInfo = rowTypeInfo;
         this.outFieldInfoList = outFieldInfoList;
         this.joinType = joinInfo.getJoinType();
@@ -80,41 +85,45 @@ public abstract class SideInfo implements Serializable{
         buildEqualInfo(joinInfo, sideTableInfo);
     }
 
-    public void parseSelectFields(JoinInfo joinInfo){
+    public void parseSelectFields(JoinInfo joinInfo) {
+        // 维表的名称
         String sideTableName = joinInfo.getSideTableName();
+        // 非维表的名称
         String nonSideTableName = joinInfo.getNonSideTable();
+        // 维表字段名称数组
         List<String> fields = Lists.newArrayList();
 
         int sideIndex = 0;
-        for( int i=0; i<outFieldInfoList.size(); i++){
+        for (int i = 0; i < outFieldInfoList.size(); i++) {
             FieldInfo fieldInfo = outFieldInfoList.get(i);
-            if(fieldInfo.getTable().equalsIgnoreCase(sideTableName)){
+            if (fieldInfo.getTable().equalsIgnoreCase(sideTableName)) {
+                // 将维表字段名称,增加到字段名称数组中
                 fields.add(fieldInfo.getFieldName());
                 sideFieldIndex.put(i, sideIndex);
                 sideFieldNameIndex.put(i, fieldInfo.getFieldName());
                 sideIndex++;
-            }else if(fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)){
+            } else if (fieldInfo.getTable().equalsIgnoreCase(nonSideTableName)) {
                 int nonSideIndex = rowTypeInfo.getFieldIndex(fieldInfo.getFieldName());
                 inFieldIndex.put(i, nonSideIndex);
-            }else{
+            } else {
                 throw new RuntimeException("unknown table " + fieldInfo.getTable());
             }
         }
 
-        if(fields.size() == 0){
-            throw new RuntimeException("select non field from table " +  sideTableName);
+        if (fields.size() == 0) {
+            throw new RuntimeException("select non field from table " + sideTableName);
         }
 
         sideSelectFields = String.join(",", fields);
     }
 
-    public void dealOneEqualCon(SqlNode sqlNode, String sideTableName){
-        if(sqlNode.getKind() != SqlKind.EQUALS){
+    public void dealOneEqualCon(SqlNode sqlNode, String sideTableName) {
+        if (sqlNode.getKind() != SqlKind.EQUALS) {
             throw new RuntimeException("not equal operator.");
         }
 
-        SqlIdentifier left = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[0];
-        SqlIdentifier right = (SqlIdentifier)((SqlBasicCall)sqlNode).getOperands()[1];
+        SqlIdentifier left = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[0];
+        SqlIdentifier right = (SqlIdentifier) ((SqlBasicCall) sqlNode).getOperands()[1];
 
         String leftTableName = left.getComponent(0).getSimple();
         String leftField = left.getComponent(1).getSimple();
@@ -122,38 +131,38 @@ public abstract class SideInfo implements Serializable{
         String rightTableName = right.getComponent(0).getSimple();
         String rightField = right.getComponent(1).getSimple();
 
-        if(leftTableName.equalsIgnoreCase(sideTableName)){
+        if (leftTableName.equalsIgnoreCase(sideTableName)) {
             equalFieldList.add(leftField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
+            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(rightField)){
+                if (fieldName.equalsIgnoreCase(rightField)) {
                     equalFieldIndex = i;
                 }
             }
-            if(equalFieldIndex == -1){
+            if (equalFieldIndex == -1) {
                 throw new RuntimeException("can't find equal field " + rightField);
             }
 
             equalValIndex.add(equalFieldIndex);
 
-        }else if(rightTableName.equalsIgnoreCase(sideTableName)){
+        } else if (rightTableName.equalsIgnoreCase(sideTableName)) {
 
             equalFieldList.add(rightField);
             int equalFieldIndex = -1;
-            for(int i=0; i<rowTypeInfo.getFieldNames().length; i++){
+            for (int i = 0; i < rowTypeInfo.getFieldNames().length; i++) {
                 String fieldName = rowTypeInfo.getFieldNames()[i];
-                if(fieldName.equalsIgnoreCase(leftField)){
+                if (fieldName.equalsIgnoreCase(leftField)) {
                     equalFieldIndex = i;
                 }
             }
-            if(equalFieldIndex == -1){
+            if (equalFieldIndex == -1) {
                 throw new RuntimeException("can't find equal field " + rightField);
             }
 
             equalValIndex.add(equalFieldIndex);
 
-        }else{
+        } else {
             throw new RuntimeException("resolve equalFieldList error:" + sqlNode.toString());
         }
     }

@@ -71,6 +71,7 @@ public class StreamSourceFactory {
     public static Table getStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env,
                                         StreamTableEnvironment tableEnv, String sqlRootDir) throws Exception {
 
+        // 这是表类型,es 就是  elasticsearch
         String sourceTypeStr = sourceTableInfo.getType();
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(sourceTypeStr);
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

@@ -63,6 +63,10 @@ public class StreamSinkFactory {
         return targetParser.asSubclass(AbsTableParser.class).newInstance();
     }
 
+    /*
+    *  得到TableSink,
+    *
+    * */
     public static TableSink getTableSink(TargetTableInfo targetTableInfo, String localSqlRootDir) throws Exception {
 
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -72,14 +76,26 @@ public class StreamSinkFactory {
 
         DtClassLoader dtClassLoader = (DtClassLoader) classLoader;
 
+        // 这是表类型,es 就是  elasticsearch
         String pluginType = targetTableInfo.getType();
+        // 插件表的路径
         String pluginJarDirPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, pluginType), localSqlRootDir);
-
+        // 用classLoader,加载插件目录下的各jar包
         PluginUtil.addPluginJar(pluginJarDirPath, dtClassLoader);
 
+        /* 得到完整类名
+         *  如type是sink, es的话,就是:
+         *       com.dtstack.flink.sql.sink.elasticsearch.ElasticsearchSink
+         * */
         String className = PluginUtil.getGenerClassName(pluginType, CURR_TYPE);
+        /*
+        *  用自定义的类加载器,加载sink类,比如:
+        *   com.dtstack.flink.sql.sink.elasticsearch.ElasticsearchSink
+        *
+        * */
         Class<?> sinkClass = dtClassLoader.loadClass(className);
 
+        // 加载的类必须是IStreamSinkGener(用于生成streamSink)的子类
         if(!IStreamSinkGener.class.isAssignableFrom(sinkClass)){
             throw new RuntimeException("class " + sinkClass + " not subClass of IStreamSinkGener");
         }

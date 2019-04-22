@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
- 
-
 package com.dtstack.flink.sql.sink.elasticsearch;
 
 import com.dtstack.flink.sql.sink.IStreamSinkGener;
@@ -48,9 +46,11 @@ import java.util.Map;
  * table output elastic5plugin
  * Date: 2018/7/13
  * Company: www.dtstack.com
+ *
  * @author huyifan_zju@163.com
  */
 
+// EsSink类, 实现 RetractStreamTableSink<Row>(表示是个sink), 实现IStreamSinkGener(用来生成sink)
 public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSinkGener<ElasticsearchSink> {
 
     private final Logger logger = LoggerFactory.getLogger(ElasticsearchSink.class);
@@ -76,6 +76,9 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     private int parallelism = -1;
 
 
+    /*
+     * 设置字段名称数组,设置字段类型数组,再返回TableSink
+     * */
     @Override
     public TableSink<Tuple2<Boolean, Row>> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
         this.fieldNames = fieldNames;
@@ -88,6 +91,9 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         return new TupleTypeInfo(org.apache.flink.table.api.Types.BOOLEAN(), getRecordType());
     }
 
+    /*
+     * 返回记录要求的类型
+     * */
     @Override
     public TypeInformation<Row> getRecordType() {
         return new RowTypeInfo(fieldTypes, fieldNames);
@@ -104,41 +110,53 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
     }
 
 
-    private RichSinkFunction createEsSinkFunction(){
+    /*
+     * 返回es的rich的sink
+     * */
+    private RichSinkFunction createEsSinkFunction() {
 
 
         Map<String, String> userConfig = new HashMap<>();
         userConfig.put("cluster.name", clusterName);
-        // This instructs the sink to emit after every element, otherwise they would be buffered
+        /* This instructs the sink to emit after every element, otherwise they would be buffered
+         * 一次发送多少条数据
+         *  */
+
         userConfig.put(org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink.CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS, "" + bulkFlushMaxActions);
         List<InetSocketAddress> transports = new ArrayList<>();
 
-        for(String address : esAddressList){
+        // 将 host和port信息写入 transports
+        for (String address : esAddressList) {
             String[] infoArray = address.split(":");
             int port = 9300;
             String host = infoArray[0];
-            if(infoArray.length > 1){
+            if (infoArray.length > 1) {
                 port = Integer.valueOf(infoArray[1].trim());
             }
 
             try {
                 transports.add(new InetSocketAddress(InetAddress.getByName(host), port));
-            }catch (Exception e){
+            } catch (Exception e) {
                 logger.error("", e);
                 throw new RuntimeException(e);
             }
         }
 
+        // 得到自定义的sinkFunc
         CustomerSinkFunc customerSinkFunc = new CustomerSinkFunc(index, type, Arrays.asList(fieldNames), Arrays.asList(columnTypes), idIndexList);
 
         return new org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink(userConfig, transports, customerSinkFunc);
     }
 
+    /*
+     * 设置dataStream发送结果数据
+     *
+     * */
     @Override
     public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
         RichSinkFunction richSinkFunction = createEsSinkFunction();
         DataStreamSink streamSink = dataStream.addSink(richSinkFunction);
-        if(parallelism > 0){
+        if (parallelism > 0) {
             streamSink.setParallelism(parallelism);
         }
     }
@@ -151,6 +169,11 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         this.bulkFlushMaxActions = bulkFlushMaxActions;
     }
 
+
+    /*
+    * 实现IStreamSinkGener,接口中的genStreamSink方法,
+    * 从 targetTableInfo 创建 ElasticsearchSink
+    * */
     @Override
     public ElasticsearchSink genStreamSink(TargetTableInfo targetTableInfo) {
         ElasticsearchTableInfo elasticsearchTableInfo = (ElasticsearchTableInfo) targetTableInfo;
@@ -164,7 +187,7 @@ public class ElasticsearchSink implements RetractStreamTableSink<Row>, IStreamSi
         String[] idField = id.split(",");
         idIndexList = new ArrayList<>();
 
-        for(int i = 0; i < idField.length; ++i) {
+        for (int i = 0; i < idField.length; ++i) {
             idIndexList.add(Integer.valueOf(idField[i]));
         }
 

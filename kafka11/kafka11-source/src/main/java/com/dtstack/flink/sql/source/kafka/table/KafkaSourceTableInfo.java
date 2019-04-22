@@ -30,6 +30,10 @@ import org.apache.flink.calcite.shaded.com.google.common.base.Preconditions;
  * @author sishu.yss
  */
 
+/*
+* kafka源表(基本信息表)
+*
+* */
 public class KafkaSourceTableInfo extends SourceTableInfo {
 
     //version

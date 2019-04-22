@@ -19,6 +19,7 @@
 package com.dtstack.flink.sql.sink.elasticsearch;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
+
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 
@@ -28,33 +29,46 @@ import java.util.Map;
 
 /**
  * Utilities for ElasticSearch
- *
+ * <p>
  * Company: www.dtstack.com
+ *
  * @author huyifan.zju@163.com
  */
 public class EsUtil {
 
+    /**
+     * row 转 Map
+     *
+     * @paramer fields 字段名数组
+     * @paramer types 类型数组
+     */
     public static Map<String, Object> rowToJsonMap(Row row, List<String> fields, List<String> types) {
         Preconditions.checkArgument(row.getArity() == fields.size());
-        Map<String,Object> jsonMap = new HashMap<>();
+        Map<String, Object> jsonMap = new HashMap<>();
         int i = 0;
-        for(; i < fields.size(); ++i) {
+        for (; i < fields.size(); ++i) {
+            // 字段名
             String field = fields.get(i);
+            // 字段名称可能是 hz.hb, 就拆分成数组
             String[] parts = field.split("\\.");
             Map<String, Object> currMap = jsonMap;
-            for(int j = 0; j < parts.length - 1; ++j) {
+            for (int j = 0; j < parts.length - 1; ++j) {
                 String key = parts[j];
-                if(currMap.get(key) == null) {
-                    currMap.put(key, new HashMap<String,Object>());
+                // 如果 当前map 不包含 key
+                if (currMap.get(key) == null) {
+                    currMap.put(key, new HashMap<String, Object>());
                 }
                 currMap = (Map<String, Object>) currMap.get(key);
             }
+            // Key取数组的最后一个元素
             String key = parts[parts.length - 1];
             Object col = row.getField(i);
-            if(col != null) {
+            if (col != null) {
+                // col 转 string
                 Object value = DtStringUtil.col2string(col, types.get(i));
                 currMap.put(key, value);
             }
+
 
         }
 

@@ -16,19 +16,18 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.sink.elasticsearch.table;
 
 
 import com.dtstack.flink.sql.table.AbsTableParser;
 import com.dtstack.flink.sql.table.TableInfo;
+
 import java.util.Map;
 
 /**
  * @date 2018/09/12
- * @author sishu.yss
- * @Company: www.dtstack.com
+ * es sink 解析器
  */
 public class ElasticsearchSinkParser extends AbsTableParser {
 
@@ -43,10 +42,16 @@ public class ElasticsearchSinkParser extends AbsTableParser {
     private static final String KEY_ES_ID_FIELD_INDEX_LIST = "id";
 
     @Override
+    // 字段名字不需要大写
     protected boolean fieldNameNeedsUpperCase() {
         return false;
     }
 
+    /**
+     * 覆写父类中的抽象方法
+     * <p>
+     * 返回 解析了字段,填充了配置后的tableInfo
+     */
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
         ElasticsearchTableInfo elasticsearchTableInfo = new ElasticsearchTableInfo();

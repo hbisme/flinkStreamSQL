@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.table;
 
@@ -25,22 +24,35 @@ import com.dtstack.flink.sql.util.MathUtil;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
+/*
  * Reason:
  * Date: 2018/7/4
  * Company: www.dtstack.com
- *
  * @author xuchao
  */
 
+/**
+ * 数据源解析器类
+ */
 public abstract class AbsSourceParser extends AbsTableParser {
 
     private static final String VIRTUAL_KEY = "virtualFieldKey";
 
     private static final String WATERMARK_KEY = "waterMarkKey";
 
+    /**
+     * 会匹配字符串 "function(colNameX) AS aliasName"
+     * group1 = "function(colNameX)"
+     * group2 = "aliasName"
+     */
     private static Pattern virtualFieldKeyPattern = Pattern.compile("(?i)^(\\S+\\([^\\)]+\\))\\s+AS\\s+(\\w+)$");
 
+    /**
+     * 会匹配字符串 "WATERMARK FOR colName AS withOffset( colName , 1000 )"
+     * group1 = "colName"
+     * group2 = "colName"     // 括号里面的 colName
+     * group3 = "1000"
+     */
     private static Pattern waterMarkKeyPattern = Pattern.compile("(?i)^\\s*WATERMARK\\s+FOR\\s+(\\S+)\\s+AS\\s+withOffset\\(\\s*(\\S+)\\s*,\\s*(\\d+)\\s*\\)$");
 
     static {
@@ -51,15 +63,28 @@ public abstract class AbsSourceParser extends AbsTableParser {
         keyHandlerMap.put(WATERMARK_KEY, AbsSourceParser::dealWaterMark);
     }
 
-    static void dealVirtualField(Matcher matcher, TableInfo tableInfo){
+    // 处理虚拟字段
+    static void dealVirtualField(Matcher matcher, TableInfo tableInfo) {
         SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
+        /*
+         * 将虚拟字段 "function(colNameX) AS aliasName"中的
+         * fieldName = "aliasName"
+         * expression = "function(colNameX)"
+         * */
         String fieldName = matcher.group(2);
         String expression = matcher.group(1);
         sourceTableInfo.addVirtualField(fieldName, expression);
     }
 
-    static void dealWaterMark(Matcher matcher, TableInfo tableInfo){
+    // 处理 waterMark
+    static void dealWaterMark(Matcher matcher, TableInfo tableInfo) {
         SourceTableInfo sourceTableInfo = (SourceTableInfo) tableInfo;
+
+        /*
+         * "WATERMARK FOR colName AS withOffset( colName , 1000 )"
+         * eventTimeField = "colName"  // 第一个colName
+         * offset = 1000
+         * */
         String eventTimeField = matcher.group(1);
         //FIXME Temporarily resolve the second parameter row_time_field
         Integer offset = MathUtil.getIntegerVal(matcher.group(3));

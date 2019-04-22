@@ -25,7 +25,7 @@ import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import java.util.List;
 
 /**
- * Reason:
+ * Reason: 基础表的数据结构
  * Date: 2018/6/22
  * Company: www.dtstack.com
  * @author xuchao
@@ -37,6 +37,7 @@ public abstract class TableInfo {
 
     private String name;
 
+    // 这是表类型,es 就是  elasticsearch
     private String type;
 
     private String[] fields;
@@ -45,6 +46,7 @@ public abstract class TableInfo {
 
     private Class<?>[] fieldClasses;
 
+    // 包含所有字段的列表
     private final List<String> fieldList = Lists.newArrayList();
 
     private final List<String> fieldTypeList = Lists.newArrayList();
@@ -65,6 +67,7 @@ public abstract class TableInfo {
         return type;
     }
 
+    // 设置表类型
     public void setType(String type) {
         this.type = type;
     }
@@ -123,6 +126,7 @@ public abstract class TableInfo {
 
 
     public void finish(){
+        // 将字段列表转到字段数组
         this.fields = fieldList.toArray(new String[fieldList.size()]);
         this.fieldClasses = fieldClassList.toArray(new Class[fieldClassList.size()]);
         this.fieldTypes = fieldTypeList.toArray(new String[fieldTypeList.size()]);

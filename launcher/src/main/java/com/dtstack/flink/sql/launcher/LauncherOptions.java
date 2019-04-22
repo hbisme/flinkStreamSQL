@@ -20,6 +20,7 @@ package com.dtstack.flink.sql.launcher;
 
 /**
  * This class define commandline options for the Launcher program
+ *  启动的命令行选项
  *
  * Company: www.dtstack.com
  * @author huyifan.zju@163.com

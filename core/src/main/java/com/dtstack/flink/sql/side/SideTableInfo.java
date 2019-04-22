@@ -31,6 +31,9 @@ import java.io.Serializable;
  * Date: 2018/7/25
  * Company: www.dtstack.com
  * @author xuchao
+ *
+ * 维表信息
+ *
  */
 
 public abstract class SideTableInfo extends TableInfo implements Serializable {
@@ -54,9 +57,13 @@ public abstract class SideTableInfo extends TableInfo implements Serializable {
     private boolean partitionedJoin = false;
 
     public RowTypeInfo getRowTypeInfo(){
+        // 一行中所有字段的 Class数组
         Class[] fieldClass = getFieldClasses();
         TypeInformation<?>[] types = new TypeInformation[fieldClass.length];
+        // 一行中所有字段的 名称字符串数组
         String[] fieldNames = getFields();
+
+        // 将一行中每个字段的Class,生成对应的TypeInformation,写入到 数组
         for(int i=0; i<fieldClass.length; i++){
             types[i] = TypeInformation.of(fieldClass[i]);
         }

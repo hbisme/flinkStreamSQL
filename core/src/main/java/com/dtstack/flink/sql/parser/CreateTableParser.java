@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
- 
 
 package com.dtstack.flink.sql.parser;
 
 import com.dtstack.flink.sql.util.DtStringUtil;
+
 import org.apache.flink.calcite.shaded.com.google.common.collect.Maps;
 
 import java.util.List;
@@ -32,16 +32,23 @@ import java.util.regex.Pattern;
  * 解析创建表结构sql
  * Date: 2018/6/26
  * Company: www.dtstack.com
+ *
  * @author xuchao
  */
 
 public class CreateTableParser implements IParser {
 
+    /* "create table myTable (name varchar, age int)  with (type = 'kafka09', topic = 'nbTest1')"  解析这样的sql
+        tableName: myTable
+        fieldsInfoStr: name varchar, age int
+        propsStr: "type = 'kafka09', topic = 'nbTest1'"
+        props: Map{topic=hbTest1, type=kafka09}
+     */
     private static final String PATTERN_STR = "(?i)create\\s+table\\s+(\\S+)\\s*\\((.+)\\)\\s*with\\s*\\((.+)\\)";
 
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STR);
 
-    public static CreateTableParser newInstance(){
+    public static CreateTableParser newInstance() {
         return new CreateTableParser();
     }
 
@@ -53,35 +60,52 @@ public class CreateTableParser implements IParser {
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
         Matcher matcher = PATTERN.matcher(sql);
-        if(matcher.find()){
+        if (matcher.find()) {
             String tableName = matcher.group(1).toUpperCase();
             String fieldsInfoStr = matcher.group(2);
             String propsStr = matcher.group(3);
             Map<String, Object> props = parseProp(propsStr);
 
+            /*
+            * 生成sql解析结果类(静态内部类)
+            * */
             SqlParserResult result = new SqlParserResult();
             result.setTableName(tableName);
             result.setFieldsInfoStr(fieldsInfoStr);
             result.setPropMap(props);
 
+            /*
+            * addPreDealTableInfo 的作用是 将sqlTree 的 preDealTableMap 变量增加一项:
+            * key 是: myTable (tableName), value 是: sql解析结果类
+            *
+            * */
             sqlTree.addPreDealTableInfo(tableName, result);
         }
     }
 
-    private Map parseProp(String propsStr){
+    private Map parseProp(String propsStr) {
         String[] strs = propsStr.trim().split("'\\s*,");
         Map<String, Object> propMap = Maps.newHashMap();
-        for(int i=0; i<strs.length; i++){
+        for (int i = 0; i < strs.length; i++) {
             List<String> ss = DtStringUtil.splitIgnoreQuota(strs[i], '=');
             String key = ss.get(0).trim();
             String value = ss.get(1).trim().replaceAll("'", "").trim();
             propMap.put(key, value);
         }
 
+        /* 将propsStr(属性字符串)转成HashMap
+         * */
         return propMap;
     }
 
-    public static class SqlParserResult{
+    /*
+    * sql解析结果内部类,包含三个字段:
+    * 1. tableName 比如: "myTable"
+    * 2. fieldsInfoStr 比如: "name varchar, age int"
+    * 3. propMap 比如 Map{topic=hbTest1, type=kafka09}
+    *
+    * */
+    public static class SqlParserResult {
 
         private String tableName;
 
@@ -112,5 +136,22 @@ public class CreateTableParser implements IParser {
         public void setPropMap(Map<String, Object> propMap) {
             this.propMap = propMap;
         }
+    }
+
+
+    /*
+     * 测试 parseSql (解析sql),也可用于debug
+     *
+     *
+     * */
+    public static void main(String[] args) {
+
+        CreateTableParser createTableParser = new CreateTableParser();
+        String createSql = "create table myTable (name varchar,age int)  with (type = 'kafka09', topic = 'nbTest1')";
+        SqlTree sqlTree = new SqlTree();
+        System.out.println(sqlTree);
+        createTableParser.parseSql(createSql, sqlTree);
+        System.out.println(sqlTree);
+
     }
 }

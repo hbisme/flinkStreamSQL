@@ -33,6 +33,9 @@ import java.util.regex.Pattern;
  * Date: 2018/7/25
  * Company: www.dtstack.com
  * @author xuchao
+ *
+ * mysql维表解析类.
+ *
  */
 
 public class MysqlSideParser extends AbsSideTableParser {
@@ -42,16 +45,21 @@ public class MysqlSideParser extends AbsSideTableParser {
     private final static Pattern SIDE_TABLE_SIGN = Pattern.compile("(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$");
 
     static {
+        // 加入用来区分维表的kv
         keyPatternMap.put(SIDE_SIGN_KEY, SIDE_TABLE_SIGN);
         keyHandlerMap.put(SIDE_SIGN_KEY, MysqlSideParser::dealSideSign);
     }
 
+    // mysql维表解析类, 用来将配置信息 set 到 TableInfo.
     @Override
     public TableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) {
+        // 生成空的mysqlInfo维表类
         MysqlSideTableInfo mysqlTableInfo = new MysqlSideTableInfo();
         mysqlTableInfo.setName(tableName);
+        // 将字段set到维表类
         parseFieldsInfo(fieldsInfo, mysqlTableInfo);
 
+        // 将cache设置,set到维表类
         parseCacheProp(mysqlTableInfo, props);
         mysqlTableInfo.setParallelism(MathUtil.getIntegerVal(props.get(MysqlSideTableInfo.PARALLELISM_KEY.toLowerCase())));
         mysqlTableInfo.setUrl(MathUtil.getString(props.get(MysqlSideTableInfo.URL_KEY.toLowerCase())));

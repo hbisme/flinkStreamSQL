@@ -67,6 +67,7 @@ public class LauncherOptionParser {
 
     private BasicParser parser = new BasicParser();
 
+    // 启动命令行选项类
     private LauncherOptions properties = new LauncherOptions();
 
     public LauncherOptionParser(String[] args) {
@@ -96,6 +97,7 @@ public class LauncherOptionParser {
             byte[] filecontent = new byte[(int) file.length()];
             in.read(filecontent);
             String content = new String(filecontent, "UTF-8");
+            // 将sql解析出来的内容,用UTF-8编码, 如 "line1第一行" -> "line1%E7%AC%AC%E4%B8%80%E8%A1%8C"
             String sql = URLEncoder.encode(content, Charsets.UTF_8.name());
             properties.setSql(sql);
             String localPlugin = Preconditions.checkNotNull(cl.getOptionValue(OPTION_LOCAL_SQL_PLUGIN_PATH));
@@ -145,6 +147,7 @@ public class LauncherOptionParser {
         return properties;
     }
 
+    // 将配置项类{{key1: value1},{key2: value2} } 转换成 list {"-key1", "value1", "-key2", "value2"}
     public List<String> getProgramExeArgList() throws Exception {
         Map<String,Object> mapConf = PluginUtil.ObjectToMap(properties);
         List<String> args = Lists.newArrayList();

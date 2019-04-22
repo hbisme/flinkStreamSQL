@@ -73,7 +73,10 @@ public class PluginUtil {
 
         return dirName;
     }
-
+    /* 得到完整类名
+    *  如type是sink, es的话,就是:
+    *       com.dtstack.flink.sql.sink.elasticsearch.ElasticsearchSink
+    * */
     public static String getGenerClassName(String pluginTypeName, String type) throws IOException {
         String pluginClassName = upperCaseFirstChar(pluginTypeName) + upperCaseFirstChar(type);
         return CLASS_PRE_STR  + "." + type.toLowerCase() + "." + pluginTypeName + "." + pluginClassName;
@@ -121,6 +124,11 @@ public class PluginUtil {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
+
+    /*
+    * 用classLoader,加载插件目录下的各jar包
+    *
+    * */
     public static void addPluginJar(String pluginDir, DtClassLoader classLoader) throws MalformedURLException {
         File dirFile = new File(pluginDir);
         if(!dirFile.exists() || !dirFile.isDirectory()){

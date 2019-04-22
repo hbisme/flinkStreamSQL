@@ -37,15 +37,38 @@ import java.util.regex.Pattern;
 
 /**
  * Create table statement parsing table structure to obtain specific information
+ * 创建表的语句 解析其表结构,以获取特定信息
  * Date: 2018/6/25
  * Company: www.dtstack.com
  * @author xuchao
  */
 
 public class TableInfoParserFactory {
-
     private final static String TYPE_KEY = "type";
 
+    /*
+     CREATE TABLE tableName(
+     colName cloType,
+     ...
+     PRIMARY KEY(keyInfo),
+     PERIOD FOR SYSTEM_TIME
+     )
+     WITH(
+     type='mysql',
+     url='jdbcUrl',
+     userName='dbUserName',
+     password='dbPwd',
+     tableName='tableName',
+     cache ='LRU',
+     cacheSize ='10000',
+     cacheTTLMs ='60000',
+     parallelism ='1',
+     partitionedJoin='false'
+     );
+
+      */
+
+    // PERIOD FOR SYSTEM_TIME  关键字表明该定义的表为维表信息
     private final static String SIDE_TABLE_SIGN = "(?i)^PERIOD\\s+FOR\\s+SYSTEM_TIME$";
 
     private final static Pattern SIDE_PATTERN = Pattern.compile(SIDE_TABLE_SIGN);
@@ -56,11 +79,14 @@ public class TableInfoParserFactory {
 
     private static Map<String, AbsTableParser> sideTableInfoMap = Maps.newConcurrentMap();
 
-    //Parsing loaded plugin
+    // Parsing loaded plugin
+    // 解析配置, 载入插件jar
     public static TableInfo parseWithTableType(int tableType, CreateTableParser.SqlParserResult parserResult,
                                                String localPluginRoot) throws Exception {
         AbsTableParser absTableParser = null;
+        // props 比如 Map{topic = hbTest1, type = kafka09}
         Map<String, Object> props = parserResult.getPropMap();
+        // type 比如kafka09
         String type = MathUtil.getString(props.get(TYPE_KEY));
 
         if(Strings.isNullOrEmpty(type)){
@@ -68,6 +94,7 @@ public class TableInfoParserFactory {
         }
 
         if(tableType == ETableType.SOURCE.getType()){
+            // 入参: fieldsInfoStr 比如: "name varchar, age int",返回是否是 维表
             boolean isSideTable = checkIsSideTable(parserResult.getFieldsInfoStr());
 
             if(!isSideTable){
@@ -77,8 +104,10 @@ public class TableInfoParserFactory {
                     sourceTableInfoMap.put(type, absTableParser);
                 }
             }else{
+                // 如果是维表, type 比如是 "mysql"
                 absTableParser = sideTableInfoMap.get(type);
                 if(absTableParser == null){
+                    // 得到维表定义时候 cache类型,比如 "LRU"
                     String cacheType = MathUtil.getString(props.get(SideTableInfo.CACHE_KEY));
                     absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType);
                     sideTableInfoMap.put(type, absTableParser);
@@ -108,8 +137,11 @@ public class TableInfoParserFactory {
     /**
      * judge dim table of PERIOD FOR SYSTEM_TIME
      * @param tableField
+     * @param tableField 比如: "name varchar, age int"
      * @return
      */
+
+
     private static boolean checkIsSideTable(String tableField){
         String[] fieldInfos = tableField.split(",");
         for(String field : fieldInfos){

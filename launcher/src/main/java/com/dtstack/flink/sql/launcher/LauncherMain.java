@@ -52,19 +52,24 @@ public class LauncherMain {
         LauncherOptionParser optionParser = new LauncherOptionParser(args);
         LauncherOptions launcherOptions = optionParser.getLauncherOptions();
         String mode = launcherOptions.getMode();
+        // 将参数转成list类型的数据(sql参数文件,已经转成sql文件中的内容)
         List<String> argList = optionParser.getProgramExeArgList();
         if(mode.equals(ClusterMode.local.name())) {
+            // 将参数list转成 参数数组
             String[] localArgs = argList.toArray(new String[argList.size()]);
             Main.main(localArgs);
         } else {
+            // 返回 ClusterClient(standalone 或者 yarn (哪种模式?))
             ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
             String pluginRoot = launcherOptions.getLocalSqlPluginPath();
+            // jarFile 是core.jar
             File jarFile = new File(getLocalCoreJarPath(pluginRoot));
             String[] remoteArgs = argList.toArray(new String[argList.size()]);
             PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
             if(StringUtils.isNotBlank(launcherOptions.getSavePointPath())){
                 program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(launcherOptions.getSavePointPath(), BooleanUtils.toBoolean(launcherOptions.getAllowNonRestoredState())));
             }
+            // 真正开始运行程序
             clusterClient.run(program, 1);
             clusterClient.shutdown();
         }

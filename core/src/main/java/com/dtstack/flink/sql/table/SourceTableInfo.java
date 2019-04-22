@@ -32,14 +32,19 @@ import java.util.Map;
  * @author xuchao
  */
 
+/*
+* 数据源表的基类
+* */
 public abstract class SourceTableInfo extends TableInfo {
 
     public static final String SOURCE_SUFFIX = "Source";
 
+    // 时间字段
     private String eventTimeField;
 
     private Integer maxOutOrderness = 10;
 
+    // 虚拟字段Map
     private Map<String, String> virtualFields = Maps.newHashMap();
 
     @Override
@@ -75,11 +80,20 @@ public abstract class SourceTableInfo extends TableInfo {
         this.virtualFields = virtualFields;
     }
 
+    /*
+     * 将虚拟字段 "function(colNameX) AS aliasName"中的
+     * fieldName = "aliasName"
+     * expression = "function(colNameX)"
+     * */
+
     public void addVirtualField(String fieldName, String expression){
         virtualFields.put(fieldName, expression);
     }
 
     public String getAdaptSelectSql(){
+        /*
+        * 用","拼接字段名称, 比如: name, age -> "name,age", fields = "name,age"
+        * */
         String fields = String.join(",", getFields());
         String virtualFieldsStr = "";
 
@@ -87,17 +101,29 @@ public abstract class SourceTableInfo extends TableInfo {
             return null;
         }
 
+        /*
+        * 将虚拟字段Map加入到虚拟字段String中
+        * virtualFieldsStr = function(colNameX)  AS   aliasName,function(colName2)  AS   aliasName2,
+        *
+        * */
         for(Map.Entry<String, String> entry : virtualFields.entrySet()){
             virtualFieldsStr += entry.getValue() +" AS " + entry.getKey() + ",";
         }
 
+        /*
+        * fields = "name, age, function(colNameX)  AS   aliasName, function(colName2)  AS   aliasName2"
+        * */
         if(!Strings.isNullOrEmpty(virtualFieldsStr)){
             fields += "," + virtualFieldsStr.substring(0, virtualFieldsStr.lastIndexOf(","));
         }
 
+        /*
+        * "select name, age, function(colNameX)  AS   aliasName, function(colName2)  AS   aliasName2 from table1_adapt"
+        * */
         return String.format("select %s from %s", fields, getAdaptName());
     }
 
+    // 得到适应的名字,(表名+"_adapt")
     public String getAdaptName(){
         return getName() + "_adapt";
     }

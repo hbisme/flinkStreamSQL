@@ -94,9 +94,11 @@ public class Main {
 
     private static final int delayInterval = 10; //sec
 
+    // sql参数文件,已经转成sql文件中的内容了
     public static void main(String[] args) throws Exception {
 
         Options options = new Options();
+        //                短参数名称, 名称后是否跟参数, 描述
         options.addOption("sql", true, "sql config");
         options.addOption("name", true, "job name");
         options.addOption("addjar", true, "add jar");
@@ -122,7 +124,19 @@ public class Main {
         Preconditions.checkNotNull(name, "parameters of name is required");
         Preconditions.checkNotNull(localSqlPluginPath, "parameters of localSqlPluginPath is required");
 
+        /*
+        *  URLDecoder.decode  是将将application/x-www-form-urlencoded字符串转换成普通字符串,
+        *  比如 url 里面的中文编码
+        *   String keyWord = URLDecoder.decode("http://hb.com/?school=%E5%A4%A9%E6%B4%A5%E5%A4%A7%E5%AD%A6+Rico", "UTF-8");
+        *   通过解码keyWord是: http://hb.com/?school=天津大学 Rico
+        *   所以,这里是将sql解码为字符串.
+         * */
         sql = URLDecoder.decode(sql, Charsets.UTF_8.name());
+
+        /*
+        *  通过修改 SqlParser类中 LOCAL_SQL_PLUGIN_ROOT 静态全局变量,
+        *  设置本地sql插件目录.
+         * */
         SqlParser.setLocalSqlPluginRoot(localSqlPluginPath);
 
         List<String> addJarFileList = Lists.newArrayList();
@@ -143,11 +157,20 @@ public class Main {
         }
 
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
+        // json字符串(一些参数设置) 转成 confProperties对象
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
+
+        /*
+        * 真正开始执行flink程序,生成env对象
+        *
+        * */
         StreamExecutionEnvironment env = getStreamExeEnv(confProperties, deployMode);
         StreamTableEnvironment tableEnv = StreamTableEnvironment.getTableEnvironment(env);
 
         List<URL> jarURList = Lists.newArrayList();
+        /*
+        * 将3种sql语句的解析结果,加入到sqlTree中
+        * */
         SqlTree sqlTree = SqlParser.parseSql(sql);
 
         //Get External jar to load
@@ -162,6 +185,7 @@ public class Main {
         //register udf
         registerUDF(sqlTree, jarURList, parentClassloader, tableEnv);
         //register table schema
+        /* 注册 源表和结果表到tableEnv  */
         registerTable(sqlTree, env, tableEnv, localSqlPluginPath, remoteSqlPluginPath, sideTableMap, registerTableCache);
 
         SideSqlExec sideSqlExec = new SideSqlExec();
@@ -209,7 +233,7 @@ public class Main {
         if(env instanceof StreamContextEnvironment){
             Field field = env.getClass().getDeclaredField("ctx");
             field.setAccessible(true);
-            ContextEnvironment contextEnvironment= (ContextEnvironment) field.get(env);
+            ContextEnvironment contextEnvironment = (ContextEnvironment) field.get(env);
             for(URL url : classPathSet){
                 contextEnvironment.getClasspaths().add(url);
             }
@@ -265,11 +289,13 @@ public class Main {
                 Table regTable = tableEnv.fromDataStream(adaptStream, fields);
                 tableEnv.registerTable(tableInfo.getName(), regTable);
                 registerTableCache.put(tableInfo.getName(), regTable);
+                // 将编译后plugins里的特定sink目录下的jar文件路径,加入到classPathSet里, 比如es就是: plugins/elasticsearchsink/elasticsearch5-sink.jar
                 classPathSet.add(PluginUtil.getRemoteJarFilePath(tableInfo.getType(), SourceTableInfo.SOURCE_SUFFIX, remoteSqlPluginPath));
             } else if (tableInfo instanceof TargetTableInfo) {
 
                 TableSink tableSink = StreamSinkFactory.getTableSink((TargetTableInfo) tableInfo, localSqlPluginPath);
                 TypeInformation[] flinkTypes = FlinkUtil.transformTypes(tableInfo.getFieldClasses());
+                // 在tableEnv里注册结果表
                 tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
                 classPathSet.add( PluginUtil.getRemoteJarFilePath(tableInfo.getType(), TargetTableInfo.TARGET_SUFFIX, remoteSqlPluginPath));
             } else if(tableInfo instanceof SideTableInfo){
@@ -287,8 +313,12 @@ public class Main {
     }
 
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws IOException {
+        /*
+        * 如果设置模式是local,则env 为 MyLocalStreamEnvironment对象
+        * */
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
+                // LocalStreamEnvironment 用的配置是空的
                 new MyLocalStreamEnvironment();
 
         env.setParallelism(FlinkUtil.getEnvParallelism(confProperties));
